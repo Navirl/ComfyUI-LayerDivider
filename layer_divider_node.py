@@ -3,12 +3,12 @@ import numpy as np
 import torch
 import os
 import folder_paths
-from .ldivider.ld_utils import save_psd, load_masks, divide_folder, load_seg_model
+from .ldivider.ld_utils import load_masks, divide_folder, load_seg_model
 from .ldivider.ld_convertor import pil2cv, cv2pil, df2bgra
 from .ldivider.ld_processor import get_base, get_normal_layer, get_composite_layer, get_seg_base
 from .ldivider.ld_segment import get_mask_generator, get_masks, show_anns
-from pytoshop.enums import BlendMode
-import requests
+# from pytoshop.enums import BlendMode
+# import requests
 
 comfy_path = os.path.dirname(folder_paths.__file__)
 
@@ -21,7 +21,7 @@ model_dir = f"{layer_divider_path}/segment_model"
 if not os.path.exists(f'{output_dir}'):
     os.makedirs(f'{output_dir}')
 
-import uuid
+# import uuid
 
 import cv2
 
@@ -70,53 +70,53 @@ def to_comfy_imgs(np_imgs):
     return out_imgs
 
 
-def generate_layers(input_image, cv_image, df, layer_mode, divide_mode):
-    base_image = to_comfy_img(df2bgra(df))
-    comfy_image = to_comfy_img(cv_image)
+# def generate_layers(input_image, cv_image, df, layer_mode, divide_mode):
+#     base_image = to_comfy_img(df2bgra(df))
+#     comfy_image = to_comfy_img(cv_image)
 
-    if layer_mode == "composite":
-        base_layer_list, shadow_layer_list, bright_layer_list, addition_layer_list, subtract_layer_list = (
-            get_composite_layer(input_image, df))
+#     if layer_mode == "composite":
+#         base_layer_list, shadow_layer_list, bright_layer_list, addition_layer_list, subtract_layer_list = (
+#             get_composite_layer(input_image, df))
 
-        filename = save_psd(
-            input_image,
-            [base_layer_list, bright_layer_list, shadow_layer_list, subtract_layer_list, addition_layer_list],
-            ["base", "screen", "multiply", "subtract", "addition"],
-            [BlendMode.normal, BlendMode.screen, BlendMode.multiply, BlendMode.subtract, BlendMode.linear_dodge],
-            output_dir,
-            layer_mode,
-            divide_mode
-        )
+#         filename = save_psd(
+#             input_image,
+#             [base_layer_list, bright_layer_list, shadow_layer_list, subtract_layer_list, addition_layer_list],
+#             ["base", "screen", "multiply", "subtract", "addition"],
+#             [BlendMode.normal, BlendMode.screen, BlendMode.multiply, BlendMode.subtract, BlendMode.linear_dodge],
+#             output_dir,
+#             layer_mode,
+#             divide_mode
+#         )
 
-        # base_layer_list = [cv2pil(layer) for layer in base_layer_list]
+#         # base_layer_list = [cv2pil(layer) for layer in base_layer_list]
 
-        divide_folder(filename, input_dir, layer_mode)
+#         divide_folder(filename, input_dir, layer_mode)
 
-        base_layer_list = to_comfy_imgs(base_layer_list)
-        bright_layer_list = to_comfy_imgs(bright_layer_list)
-        shadow_layer_list = to_comfy_imgs(shadow_layer_list)
+#         base_layer_list = to_comfy_imgs(base_layer_list)
+#         bright_layer_list = to_comfy_imgs(bright_layer_list)
+#         shadow_layer_list = to_comfy_imgs(shadow_layer_list)
 
-        return (comfy_image, base_image, base_layer_list,
-                bright_layer_list, shadow_layer_list, filename)
+#         return (comfy_image, base_image, base_layer_list,
+#                 bright_layer_list, shadow_layer_list, filename)
 
-    elif layer_mode == "normal":
-        base_layer_list, bright_layer_list, shadow_layer_list = get_normal_layer(input_image, df)
-        filename = save_psd(
-            input_image,
-            [base_layer_list, bright_layer_list, shadow_layer_list],
-            ["base", "bright", "shadow"],
-            [BlendMode.normal, BlendMode.normal, BlendMode.normal],
-            output_dir,
-            layer_mode,
-            divide_mode
-        )
+#     elif layer_mode == "normal":
+#         base_layer_list, bright_layer_list, shadow_layer_list = get_normal_layer(input_image, df)
+#         filename = save_psd(
+#             input_image,
+#             [base_layer_list, bright_layer_list, shadow_layer_list],
+#             ["base", "bright", "shadow"],
+#             [BlendMode.normal, BlendMode.normal, BlendMode.normal],
+#             output_dir,
+#             layer_mode,
+#             divide_mode
+#         )
 
-        divide_folder(filename, input_dir, layer_mode)
+#         divide_folder(filename, input_dir, layer_mode)
 
-        return (comfy_image, base_image, to_comfy_imgs(base_layer_list), to_comfy_imgs(bright_layer_list),
-                to_comfy_imgs(shadow_layer_list), filename)
-    else:
-        return None
+#         return (comfy_image, base_image, to_comfy_imgs(base_layer_list), to_comfy_imgs(bright_layer_list),
+#                 to_comfy_imgs(shadow_layer_list), filename)
+#     else:
+#         return None
 
 
 class LayerDividerColorBase:
@@ -169,7 +169,7 @@ class LayerDividerColorBase:
     CATEGORY = "LayerDivider"
 
     def execute(self,
-                image1,
+                image1, mask_image,
                 loops, init_cluster, ciede_threshold, blur_size):
 
         # Disable bg remove for now
@@ -182,14 +182,18 @@ class LayerDividerColorBase:
         th_rate = 0
 
         img_batch_np = image1.cpu().detach().numpy().__mul__(255.).astype(np.uint8)
+        mask_img_batch_np = mask_image.cpu().detach().numpy().__mul__(255.).astype(np.uint8)
 
         input_image = Image.fromarray(img_batch_np[0])
+        mask_input_image = Image.fromarray(mask_img_batch_np[0])
 
-        image = pil2cv(input_image)
+        image_pil = pil2cv(input_image)
+        mask_image_pil = pil2cv(mask_input_image)
 
-        self.input_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGBA)
+        self.input_image = cv2.cvtColor(image_pil, cv2.COLOR_BGR2RGBA)
+        self.mask_image = cv2.cvtColor(mask_image_pil, cv2.COLOR_BGR2RGBA)
 
-        df = get_base(self.input_image, loops, init_cluster, ciede_threshold, blur_size, h_split, v_split, n_cluster,
+        df = get_base(self.input_image, self.mask_image, loops, init_cluster, ciede_threshold, blur_size, h_split, v_split, n_cluster,
                       alpha, th_rate, split_bg, False)
 
         return self.input_image, df, "color_base"
@@ -300,77 +304,77 @@ class LayerDividerSegmentMask:
         return self.input_image, df, "seg_mask", masked_image
 
 
-class LayerDividerDivideLayer:
-    def __init__(self):
-        pass
+# class LayerDividerDivideLayer:
+#     def __init__(self):
+#         pass
 
-    @classmethod
-    def INPUT_TYPES(s):
-        return {
-            "required": {
-                "input_image": ("LD_INPUT_IMAGE",),
-                "df": ("LD_DF",),
-                "divide_mode": ("LD_DIVIDE_MODE",),
-                "layer_mode": (["composite", "normal"],),
-            }
-        }
+#     @classmethod
+#     def INPUT_TYPES(s):
+#         return {
+#             "required": {
+#                 "input_image": ("LD_INPUT_IMAGE",),
+#                 "df": ("LD_DF",),
+#                 "divide_mode": ("LD_DIVIDE_MODE",),
+#                 "layer_mode": (["composite", "normal"],),
+#             }
+#         }
 
-    RETURN_TYPES = ("IMAGE", "IMAGE", "IMAGE", "IMAGE", "STRING")
-    RETURN_NAMES = ("base_image", "base", "bright", "shadow", "filepath")
+#     RETURN_TYPES = ("IMAGE", "IMAGE", "IMAGE", "IMAGE", "STRING")
+#     RETURN_NAMES = ("base_image", "base", "bright", "shadow", "filepath")
 
-    FUNCTION = "execute"
+#     FUNCTION = "execute"
 
-    # OUTPUT_NODE = False
+#     # OUTPUT_NODE = False
 
-    CATEGORY = "LayerDivider"
+#     CATEGORY = "LayerDivider"
 
-    def execute(self, input_image, df, divide_mode, layer_mode):
-        if layer_mode == "composite":
-            base_layer_list, shadow_layer_list, bright_layer_list, addition_layer_list, subtract_layer_list = get_composite_layer(
-                input_image, df)
-            filename = save_psd(
-                input_image,
-                [base_layer_list, bright_layer_list, shadow_layer_list, subtract_layer_list, addition_layer_list],
-                ["base", "screen", "multiply", "subtract", "addition"],
-                [BlendMode.normal, BlendMode.screen, BlendMode.multiply, BlendMode.subtract, BlendMode.linear_dodge],
-                output_dir,
-                layer_mode,
-                divide_mode
-            )
+#     def execute(self, input_image, df, divide_mode, layer_mode):
+#         if layer_mode == "composite":
+#             base_layer_list, shadow_layer_list, bright_layer_list, addition_layer_list, subtract_layer_list = get_composite_layer(
+#                 input_image, df)
+#             filename = save_psd(
+#                 input_image,
+#                 [base_layer_list, bright_layer_list, shadow_layer_list, subtract_layer_list, addition_layer_list],
+#                 ["base", "screen", "multiply", "subtract", "addition"],
+#                 [BlendMode.normal, BlendMode.screen, BlendMode.multiply, BlendMode.subtract, BlendMode.linear_dodge],
+#                 output_dir,
+#                 layer_mode,
+#                 divide_mode
+#             )
 
-        elif layer_mode == "normal":
-            base_layer_list, bright_layer_list, shadow_layer_list = get_normal_layer(input_image, df)
-            filename = save_psd(
-                input_image,
-                [base_layer_list, bright_layer_list, shadow_layer_list],
-                ["base", "bright", "shadow"],
-                [BlendMode.normal, BlendMode.normal, BlendMode.normal],
-                output_dir,
-                layer_mode,
-                divide_mode
-            )
+#         elif layer_mode == "normal":
+#             base_layer_list, bright_layer_list, shadow_layer_list = get_normal_layer(input_image, df)
+#             filename = save_psd(
+#                 input_image,
+#                 [base_layer_list, bright_layer_list, shadow_layer_list],
+#                 ["base", "bright", "shadow"],
+#                 [BlendMode.normal, BlendMode.normal, BlendMode.normal],
+#                 output_dir,
+#                 layer_mode,
+#                 divide_mode
+#             )
 
-        print("filename:" + filename)
+#         print("filename:" + filename)
 
-        divide_folder(filename, input_dir, layer_mode)
+#         divide_folder(filename, input_dir, layer_mode)
 
-        return (to_comfy_img(input_image),
-                to_comfy_imgs(base_layer_list),
-                to_comfy_imgs(bright_layer_list),
-                to_comfy_imgs(shadow_layer_list),
-                filename)
+#         return (to_comfy_img(input_image),
+#                 to_comfy_imgs(base_layer_list),
+#                 to_comfy_imgs(bright_layer_list),
+#                 to_comfy_imgs(shadow_layer_list),
+#                 filename)
 
 
 NODE_CLASS_MAPPINGS = {
     "LayerDivider - Color Base": LayerDividerColorBase,
     "LayerDivider - Load SAM Mask Generator": LayerDividerLoadMaskGenerator,
-    "LayerDivider - Segment Mask": LayerDividerSegmentMask,
-    "LayerDivider - Divide Layer": LayerDividerDivideLayer
+    "LayerDivider - Segment Mask": LayerDividerSegmentMask
+    # "LayerDivider - Divide Layer": LayerDividerDivideLayer
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "LayerDivider - Color Base": LayerDividerColorBase,
     "LayerDivider - Load SAM Mask Generator": LayerDividerLoadMaskGenerator,
-    "LayerDivider - Segment Mask": LayerDividerSegmentMask,
-    "LayerDivider - Divide Layer": LayerDividerDivideLayer
+    "LayerDivider - Segment Mask": LayerDividerSegmentMask
+    # "LayerDivider - Divide Layer": LayerDividerDivideLayer
 }

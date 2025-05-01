@@ -4,7 +4,7 @@ from sklearn.cluster import MiniBatchKMeans
 import numpy as np
 #import matplotlib.pyplot as plt
 from tqdm import tqdm
-from skimage import color 
+from skimage import color
 from .ld_convertor import skimage_rgb2lab, df2rgba, rgba2df, hsv2df, rgb2df, mask2df
 #from .ld_utils import img_plot
 from .bg_remover import get_foreground
@@ -43,7 +43,7 @@ def fill_mean_color(img_df, mask):
   img_df["r"] = mean[0]
   img_df["g"] = mean[1]
   img_df["b"] = mean[2]
-  
+
   return img_df, mean
 
 def get_blur_cls(img, cls, size):
@@ -56,7 +56,7 @@ def get_blur_cls(img, cls, size):
   for cls_no in tqdm(cls_list):
     mask = get_mask(blur_df, cls_no)
     img_df = blur_df.copy()
-    img_df.loc[blur_df["label"] != cls_no, ["a"]] = 0 
+    img_df.loc[blur_df["label"] != cls_no, ["a"]] = 0
     img_df, mean = fill_mean_color(img_df, mask)
     df_img = df2rgba(img_df).astype(np.uint8)
     img_list.append(df_img)
@@ -97,7 +97,7 @@ def get_update_df(df, merge_dict, mean_list, cls_list):
   color_dict = get_color_dict(mean_list, cls_list)
   update_df["r"] = update_df.apply(lambda x: color_dict[x["label"]]["r"], axis=1)
   update_df["g"] = update_df.apply(lambda x: color_dict[x["label"]]["g"], axis=1)
-  update_df["b"] = update_df.apply(lambda x: color_dict[x["label"]]["b"], axis=1)    
+  update_df["b"] = update_df.apply(lambda x: color_dict[x["label"]]["b"], axis=1)
   return update_df, color_dict
 
 def split_img_df(df, show=False):
@@ -113,12 +113,12 @@ def split_img_df(df, show=False):
   return img_list
 
 
-def get_base(img, loops, cls_num, threshold, size, h_split, v_split, n_cluster, alpha, th_rate, bg_split=True, debug=False):
+def get_base(img, mask_img, loops, cls_num, threshold, size, h_split, v_split, n_cluster, alpha, th_rate, bg_split=True, debug=False):
   if bg_split == False:
     df = rgba2df(img)
     df_list = [df]
   else:
-    df_list = get_foreground(img, h_split, v_split, n_cluster, alpha, th_rate)
+    df_list = get_foreground(img,mask_img, h_split, v_split, n_cluster, alpha, th_rate)
 
   output_list = []
 
@@ -126,7 +126,7 @@ def get_base(img, loops, cls_num, threshold, size, h_split, v_split, n_cluster, 
     output_df = df.copy()
     cls = MiniBatchKMeans(n_clusters = cls_num)
     cls.fit(df[["r","g","b"]])
-    df["label"] = cls.labels_ 
+    df["label"] = cls.labels_
     df["label"] = df["label"].astype(str) + f"_{idx}"
     for i in range(loops):
       if i !=0:
@@ -138,7 +138,7 @@ def get_base(img, loops, cls_num, threshold, size, h_split, v_split, n_cluster, 
       df = update_df
       #if debug==True: img_plot(df)
     output_df["label"] = df["label"]
-    output_df["layer_no"] = idx 
+    output_df["layer_no"] = idx
     output_list.append(output_df)
 
   output_df = pd.concat(output_list).sort_index()
@@ -148,15 +148,15 @@ def get_base(img, loops, cls_num, threshold, size, h_split, v_split, n_cluster, 
   for cls_no in tqdm(cls_list):
     mask = get_mask(output_df, cls_no)
     img_df = output_df.copy()
-    img_df.loc[output_df["label"] != cls_no, ["a"]] = 0 
+    img_df.loc[output_df["label"] != cls_no, ["a"]] = 0
     img_df, mean = fill_mean_color(img_df, mask)
     mean_list.append(mean)
 
   color_dict = get_color_dict(mean_list, cls_list)
   output_df["r"] = output_df.apply(lambda x: color_dict[x["label"]]["r"], axis=1)
   output_df["g"] = output_df.apply(lambda x: color_dict[x["label"]]["g"], axis=1)
-  output_df["b"] = output_df.apply(lambda x: color_dict[x["label"]]["b"], axis=1)  
-  
+  output_df["b"] = output_df.apply(lambda x: color_dict[x["label"]]["b"], axis=1)
+
   return output_df
 
 def set_label(x, idx):
@@ -204,7 +204,7 @@ def get_normal_layer(input_image, df):
   shadow_df["a"] = np.where(shadow_df["shadow_flg"] == True, 255, 0)
   shadow_df["label"] = df["label"]
   shadow_layer_list = split_img_df(shadow_df, show=True)
-    
+
   return base_layer_list, bright_layer_list, shadow_layer_list
 
 
@@ -220,7 +220,7 @@ def get_composite_layer(input_image, df):
   org_df["diff_r"] = df["r"] - org_df["r"]
   org_df["diff_g"] = df["g"] - org_df["g"]
   org_df["diff_b"] = df["b"] - org_df["b"]
-  
+
   org_df["shadow_flg"] = org_df.apply(
     lambda x: True if x["diff_r"] >= 0 and x["diff_g"] >= 0 and x["diff_b"] >= 0 else False,
     axis=1
@@ -229,11 +229,11 @@ def get_composite_layer(input_image, df):
     lambda x: True if x["diff_r"] < 0 and x["diff_g"] < 0 and x["diff_b"] < 0 else False,
     axis=1
   )
-    
+
 
   shadow_df = org_df.copy()
   shadow_df["a"] = org_df.apply(lambda x: 255 if x["shadow_flg"] == True else 0, axis=1)
-  
+
   shadow_df["r"] = shadow_df["r"].apply(lambda x: x*255)
   shadow_df["g"] = shadow_df["g"].apply(lambda x: x*255)
   shadow_df["b"] = shadow_df["b"].apply(lambda x: x*255)
@@ -241,7 +241,7 @@ def get_composite_layer(input_image, df):
   shadow_df["r"] = (shadow_df["r"])/df["r"]
   shadow_df["g"] = (shadow_df["g"])/df["g"]
   shadow_df["b"] = (shadow_df["b"])/df["b"]
-  
+
   shadow_df["label"] = df["label"]
   shadow_layer_list = split_img_df(shadow_df, show=True)
 
@@ -249,20 +249,20 @@ def get_composite_layer(input_image, df):
 
   screen_df["a"] = screen_df["screen_flg"].apply(lambda x: 255 if x == True else 0)
 
-  screen_df["r"] = (screen_df["r"] - df["r"])/(1 - df["r"]/255) 
-  screen_df["g"] = (screen_df["g"] - df["g"])/(1 - df["g"]/255) 
-  screen_df["b"] = (screen_df["b"] - df["b"])/(1 - df["b"]/255) 
+  screen_df["r"] = (screen_df["r"] - df["r"])/(1 - df["r"]/255)
+  screen_df["g"] = (screen_df["g"] - df["g"])/(1 - df["g"]/255)
+  screen_df["b"] = (screen_df["b"] - df["b"])/(1 - df["b"]/255)
 
   screen_df["label"] = df["label"]
   screen_layer_list = split_img_df(screen_df, show=True)
 
-  
+
   addition_df = org_df.copy()
   addition_df["a"] = addition_df.apply(lambda x: 255 if x["screen_flg"] == False and x["shadow_flg"] == False else 0, axis=1)
 
-  addition_df["r"] = org_df["r"] - df["r"] 
-  addition_df["g"] = org_df["g"] - df["g"] 
-  addition_df["b"] = org_df["b"] - df["b"]  
+  addition_df["r"] = org_df["r"] - df["r"]
+  addition_df["g"] = org_df["g"] - df["g"]
+  addition_df["b"] = org_df["b"] - df["b"]
 
   addition_df["r"] = addition_df["r"].apply(lambda x: 0 if x < 0 else x)
   addition_df["g"] = addition_df["g"].apply(lambda x: 0 if x < 0 else x)
@@ -275,8 +275,8 @@ def get_composite_layer(input_image, df):
   subtract_df = org_df.copy()
   subtract_df["a"] = subtract_df.apply(lambda x: 255 if x["screen_flg"] == False and x["shadow_flg"] == False else 0, axis=1)
 
-  subtract_df["r"] = df["r"] - org_df["r"]   
-  subtract_df["g"] = df["g"] - org_df["g"] 
+  subtract_df["r"] = df["r"] - org_df["r"]
+  subtract_df["g"] = df["g"] - org_df["g"]
   subtract_df["b"] = df["b"] - org_df["b"]
 
   subtract_df["r"] = subtract_df["r"].apply(lambda x: 0 if x < 0 else x)
