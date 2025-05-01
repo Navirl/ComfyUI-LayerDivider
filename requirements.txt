@@ -3,4 +3,3 @@ scikit-learn
 pandas
 opencv-python
 segment_anything
-onnx
