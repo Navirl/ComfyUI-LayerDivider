@@ -370,13 +370,13 @@ class LayerDividerDivideLayer:
 NODE_CLASS_MAPPINGS = {
     "LayerDivider - Color Base": LayerDividerColorBase,
     "LayerDivider - Load SAM Mask Generator": LayerDividerLoadMaskGenerator,
-    "LayerDivider - Segment Mask": LayerDividerSegmentMask
-    # "LayerDivider - Divide Layer": LayerDividerDivideLayer
+    "LayerDivider - Segment Mask": LayerDividerSegmentMask,
+    "LayerDivider - Divide Layer": LayerDividerDivideLayer
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "LayerDivider - Color Base": LayerDividerColorBase,
     "LayerDivider - Load SAM Mask Generator": LayerDividerLoadMaskGenerator,
-    "LayerDivider - Segment Mask": LayerDividerSegmentMask
-    # "LayerDivider - Divide Layer": LayerDividerDivideLayer
+    "LayerDivider - Segment Mask": LayerDividerSegmentMask,
+    "LayerDivider - Divide Layer": LayerDividerDivideLayer
 }
