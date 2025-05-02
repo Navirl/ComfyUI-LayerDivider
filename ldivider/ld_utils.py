@@ -11,8 +11,8 @@
 import random, string
 import os
 
-import psd_tools
-from psd_tools.psd import PSD
+# import psd_tools
+# from psd_tools.psd import PSD
 
 import requests
 from tqdm import tqdm
@@ -101,47 +101,47 @@ def load_masks(output_dir):
 #     return f"{output_dir}/output_{divide_mode}_{layer_mode}_{name}.psd"
 
 
-def divide_folder(psd_path, input_dir, mode):
-    with open(f'{input_dir}/empty.psd', "rb") as fd:
-        psd_base = PSD.read(fd)
-    with open(psd_path, "rb") as fd:
-        psd_image = PSD.read(fd)
+# def divide_folder(psd_path, input_dir, mode):
+#     with open(f'{input_dir}/empty.psd', "rb") as fd:
+#         psd_base = PSD.read(fd)
+#     with open(psd_path, "rb") as fd:
+#         psd_image = PSD.read(fd)
 
-    if mode == "normal":
-        add_num = 3
-    else:
-        add_num = 5
+#     if mode == "normal":
+#         add_num = 3
+#     else:
+#         add_num = 5
 
-    base_records_list = list(psd_base.layer_and_mask_information.layer_info.layer_records)
-    image_records_list = list(psd_image.layer_and_mask_information.layer_info.layer_records)
+#     base_records_list = list(psd_base.layer_and_mask_information.layer_info.layer_records)
+#     image_records_list = list(psd_image.layer_and_mask_information.layer_info.layer_records)
 
-    merge_list = []
-    for idx, record in enumerate(image_records_list):
-        if idx % add_num == 0:
-            merge_list.append(base_records_list[0])
-        merge_list.append(record)
-        if idx % add_num == (add_num - 1):
-            merge_list.append(base_records_list[2])
+#     merge_list = []
+#     for idx, record in enumerate(image_records_list):
+#         if idx % add_num == 0:
+#             merge_list.append(base_records_list[0])
+#         merge_list.append(record)
+#         if idx % add_num == (add_num - 1):
+#             merge_list.append(base_records_list[2])
 
-    psd_image.layer_and_mask_information.layer_info.layer_records = psd_tools.psd.layer_and_mask.LayerRecords(
-        merge_list)
-    psd_image.layer_and_mask_information.layer_info.layer_count = len(
-        psd_image.layer_and_mask_information.layer_info.layer_records)
+#     psd_image.layer_and_mask_information.layer_info.layer_records = psd_tools.psd.layer_and_mask.LayerRecords(
+#         merge_list)
+#     psd_image.layer_and_mask_information.layer_info.layer_count = len(
+#         psd_image.layer_and_mask_information.layer_info.layer_records)
 
-    folder_channel = psd_base.layer_and_mask_information.layer_info.channel_image_data[0]
-    image_channel = psd_image.layer_and_mask_information.layer_info.channel_image_data
+#     folder_channel = psd_base.layer_and_mask_information.layer_info.channel_image_data[0]
+#     image_channel = psd_image.layer_and_mask_information.layer_info.channel_image_data
 
-    channel_list = []
-    for idx, channel in enumerate(image_channel):
-        if idx % add_num == 0:
-            channel_list.append(folder_channel)
-        channel_list.append(channel)
-        if idx % add_num == (add_num - 1):
-            channel_list.append(folder_channel)
+#     channel_list = []
+#     for idx, channel in enumerate(image_channel):
+#         if idx % add_num == 0:
+#             channel_list.append(folder_channel)
+#         channel_list.append(channel)
+#         if idx % add_num == (add_num - 1):
+#             channel_list.append(folder_channel)
 
-    psd_image.layer_and_mask_information.layer_info.channel_image_data = psd_tools.psd.layer_and_mask.ChannelImageData(
-        channel_list)
-    with open(psd_path, 'wb') as fd:
-        psd_image.write(fd)
+#     psd_image.layer_and_mask_information.layer_info.channel_image_data = psd_tools.psd.layer_and_mask.ChannelImageData(
+#         channel_list)
+#     with open(psd_path, 'wb') as fd:
+#         psd_image.write(fd)
 
-    return psd_path
+#     return psd_path
