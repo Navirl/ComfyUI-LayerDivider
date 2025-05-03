@@ -1,4 +1,9 @@
 [EN](README.md) | [中文](README_ZH_CN.md)
+## Changes from original
+Removed onnx and psd_tools.
+So removed cuda and python version lock.
+But, lost save psd function.
+
 # ComfyUI LayerDivider
 **ComfyUI LayerDivider** is custom nodes that generating layered psd files inside ComfyUI, original implement is [mattyamonaca/layerdivider](https://github.com/mattyamonaca/layerdivider)
 
